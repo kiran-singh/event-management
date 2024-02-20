@@ -3,19 +3,20 @@ using MongoDB.Driver;
 using Newtonsoft.Json;
 using SampleCode;
 
+Random random = new();
+
 var users = JsonConvert.DeserializeObject<List<User>>(await File.ReadAllTextAsync("users.json"));
 users.ForEach(x => x.Id = Guid.NewGuid());
 
 const string connectionUri = "mongodb://localhost:27017";
-Random random = new();
 
-var mongoClient = new MongoClient(connectionUri);
+MongoClient mongoClient = new MongoClient(connectionUri);
 
-var database = mongoClient.GetDatabase("Hiscox",
+const string databaseName = "Demo";
+IMongoDatabase database = mongoClient.GetDatabase(databaseName,
     new MongoDatabaseSettings { GuidRepresentation = GuidRepresentation.Standard, });
-// BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 
-var collection = database.GetCollection<User>($"{nameof(User)}s");
+IMongoCollection<User> collection = database.GetCollection<User>($"{nameof(User)}s");
 
 try
 {
@@ -45,32 +46,32 @@ try
     Console.WriteLine();
 
     // UPDATE
-    await collection.UpdateOneAsync(x => x.Id == randomId,
+    UpdateResult updateResult = await collection.UpdateOneAsync(x => x.Id == randomId,
         Builders<User>.Update.Set(x => x.FirstName, "Taylor"));
 
-    Console.WriteLine("Updated random user:");
+    Console.WriteLine($"Updated {updateResult.MatchedCount} random user:");
     randomUser = await collection.Find(x => x.Id == randomId).SingleAsync();
     Console.WriteLine(randomUser);
     Console.WriteLine();
     
-    var updates = Builders<User>.Update.Combine(
+    UpdateDefinition<User> updates = Builders<User>.Update.Combine(
         Builders<User>.Update.Set(x => x.LastName, "Swift"),
         Builders<User>.Update.Set(x => x.Email, "taySwift99@yahoo.com")
     );
-    await collection.UpdateOneAsync(x => x.Id == randomId, updates);
+    updateResult = await collection.UpdateOneAsync(x => x.Id == randomId, updates);
 
-    Console.WriteLine("Fully updated random user:");
+    Console.WriteLine($"Fully updated {updateResult.MatchedCount} random user:");
     randomUser = await collection.Find(x => x.Id == randomId).SingleAsync();
     Console.WriteLine(randomUser);
 
     var idsToDelete = new[] { users[2].Id, users[4].Id, users[6].Id, users[8].Id, users[10].Id };
 
     // DELETE
-    var deleteReturn = await collection.DeleteOneAsync(x => x.Id == idsToDelete[1]);
-    Console.WriteLine($"Deleted {deleteReturn.DeletedCount} users");
+    DeleteResult deleteResult = await collection.DeleteOneAsync(x => x.Id == idsToDelete[1]);
+    Console.WriteLine($"Deleted {deleteResult?.DeletedCount} users");
 
-    deleteReturn = await collection.DeleteManyAsync(x => idsToDelete.Contains(x.Id));
-    Console.WriteLine($"Deleted {deleteReturn.DeletedCount} users");
+    deleteResult = await collection.DeleteManyAsync(x => idsToDelete.Contains(x.Id));
+    Console.WriteLine($"Deleted {deleteResult?.DeletedCount} users");
 }
 catch (Exception e)
 {
@@ -83,6 +84,9 @@ catch (Exception e)
 }
 finally
 {
-    var deleteReturn = collection.DeleteMany(x => true);
-    Console.WriteLine($"Deleted {deleteReturn.DeletedCount} users");
+    DeleteResult deleteResult = collection.DeleteMany(x => true);
+    Console.WriteLine($"Deleted {deleteResult.DeletedCount} users");
+
+    await mongoClient.DropDatabaseAsync(databaseName);
+    Console.WriteLine($"Database {databaseName} dropped");
 }

@@ -1,3 +1,4 @@
+using EventManagement.Domain;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
@@ -25,6 +26,11 @@ public static class ServiceCollectionExtensions
             var mongoDatabase = sp.GetRequiredService<MongoClient>()
                 .GetDatabase(mongoUrl.DatabaseName,
                     new MongoDatabaseSettings { GuidRepresentation = GuidRepresentation.Standard, });
+
+            mongoDatabase.GetCollection<Event>($"{nameof(Event)}s")
+                .Indexes.CreateOne(
+                    new CreateIndexModel<Event>(Builders<Event>.IndexKeys.Ascending(x => x.Name),
+                        new CreateIndexOptions { Background = true }));
 
             DataHelper.AddSeedData(new MongoContext(mongoDatabase));
 

@@ -1,15 +1,13 @@
 using System.Reflection;
 using AutoMapper;
 using EventManagement.Repositories;
-using EventManagement.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services
     .AddAutoMapper(Assembly.GetExecutingAssembly())
-    .AddRepositories(builder.Configuration)
-    .AddServices();
+    .AddRepositories(builder.Configuration);
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

@@ -5,7 +5,7 @@ using MongoDB.Driver;
 
 namespace EventManagement.Repositories;
 
-public class BaseRepository<T> : IBaseRepository<T> where T : class, IId, IMongoDefinition<T>
+public class BaseRepository<T> : IBaseRepository<T> where T : class, IMongoDefinition<T>
 {
     protected readonly IMongoCollection<T> MongoCollection;
     private readonly ILogger<BaseRepository<T>> _logger;
@@ -18,8 +18,10 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class, IId, IMongo
 
     public async Task<bool> AddOrUpdateAsync(T entity)
     {
-        var updateResult = await MongoCollection.UpdateOneAsync(entity.FilterDefinition(), entity.UpdateDefinition(),
-            new UpdateOptions {IsUpsert = true});
+        var updateResult = await MongoCollection.UpdateOneAsync(
+            entity.FilterDefinition(),
+            entity.UpdateDefinition(),
+            new UpdateOptions { IsUpsert = true });
 
         var valid = updateResult.IsAcknowledged &&
                     (updateResult.ModifiedCount > 0 || updateResult.UpsertedId != BsonNull.Value);
